@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DEEPSEEK DAS - Image Generator</title>
+  <style>
+    :root {
+      --bg-color: #d6d6d6;
+      --panel-bg: #b0b0b0;
+      --text-color: #000000;
+      --highlight-bg: #ffffff;
+      --border-color: #000000;
+      --progress-color: #000000;
+      --button-bg: #d6d6d6;
+      --button-border: #959595;
+      --panel-header: #c0c0c0;
+      --panel-title: #404040;
+    }
+    
+    body {
+      font-family: 'Courier New', monospace;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 10px;
+      line-height: 1.2;
+      font-size: 14px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 10px;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .header-left {
+      display: flex;
+      align-items: center;
+    }
+    
+    .title {
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-right: 10px;
+    }
+    
+    .version {
+      font-size: 0.9em;
+      background-color: var(--panel-bg);
+      padding: 2px 6px;
+      border: 1px solid var(--border-color);
+    }
+    
+    .progress-bar-container {
+      width: 300px;
+      height: 20px;
+      background-color: var(--highlight-bg);
+      border: 1px solid var(--border-color);
+      margin-left: auto;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background-color: var(--progress-color);
+      width: 0%;
+    }
+    
+    .progress-text {
+      margin-left: 10px;
+      font-size: 0.9em;
+    }
+    
+    .panel {
+      border: 2px solid var(--border-color);
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+    
+    .panel-header {
+      background-color: var(--panel-header);
+      border-bottom: 1px solid var(--border-color);
+      padding: 5px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .panel-title {
+      color: var(--panel-title);
+      font-weight: bold;
+      text-transform: uppercase;
+      flex-grow: 1;
+    }
+    
+    .panel-buttons {
+      display: flex;
+    }
+    
+    .panel-button {
+      border: 1px solid var(--button-border);
+      background-color: var(--button-bg);
+      padding: 2px 8px;
+      margin-left: 4px;
+      text-transform: uppercase;
+      font-size: 0.8em;
+      cursor: pointer;
+    }
+    
+    .panel-content {
+      padding: 10px;
+      background-color: var(--panel-bg);
+    }
+    
+    .form-row {
+      display: flex;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+    
+    .form-label {
+      width: 150px;
+      font-weight: bold;
+    }
+    
+    .form-input {
+      flex-grow: 1;
+    }
+    
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 5px;
+      font-family: 'Courier New', monospace;
+      border: 1px solid var(--border-color);
+      background-color: var(--highlight-bg);
+    }
+    
+    input[type="range"] {
+      width: 100%;
+    }
+    
+    button {
+      background-color: var(--button-bg);
+      border: 1px solid var(--button-border);
+      padding: 5px 10px;
+      text-transform: uppercase;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-weight: bold;
+    }
+    
+    button:hover {
+      background-color: var(--highlight-bg);
+    }
+    
+    .button-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+    }
+    
+    .slider-value {
+      width: 50px;
+      text-align: right;
+      font-family: 'Courier New', monospace;
+      background-color: var(--highlight-bg);
+      border: 1px solid var(--border-color);
+      padding: 3px 5px;
+    }
+    
+    .image-container {
+      background-color: var(--highlight-bg);
+      border: 1px solid var(--border-color);
+      min-height: 224px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 10px;
+    }
+    
+    .status-bar {
+      background-color: var(--panel-bg);
+      border: 1px solid var(--border-color);
+      padding: 5px;
+      margin-top: 5px;
+      font-size: 0.9em;
+    }
+    
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: var(--highlight-bg);
+    }
+    
+    .table th,
+    .table td {
+      border: 1px solid var(--border-color);
+      padding: 5px;
+      text-align: left;
+    }
+    
+    .table th {
+      background-color: var(--panel-bg);
+      font-weight: bold;
+    }
+    
+    .table tr:nth-child(even) td {
+      background-color: #e8e8e8;
+    }
+    
+    .toggle-section {
+      cursor: pointer;
+      user-select: none;
+    }
+    
+    .toggle-section::before {
+      content: "▶";
+      display: inline-block;
+      margin-right: 5px;
+      transform: rotate(90deg);
+    }
+    
+    .toggle-section.collapsed::before {
+      transform: rotate(0deg);
+    }
+    
+    .collapsible {
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    
+    .loading-text {
+      background-color: var(--highlight-bg);
+      padding: 5px;
+      border: 1px solid var(--border-color);
+      width: fit-content;
+      margin: 10px auto;
+    }
+    
+    /* For the step-by-step display */
+    .step-log {
+      height: 150px;
+      overflow-y: auto;
+      background-color: var(--highlight-bg);
+      border: 1px solid var(--border-color);
+      padding: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85em;
+      margin-top: 10px;
+    }
+    
+    .log-entry {
+      margin-bottom: 3px;
+    }
+    
+    /* Tabs in panels */
+    .tabs {
+      display: flex;
+      background-color: var(--panel-bg);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .tab {
+      padding: 5px 15px;
+      border-right: 1px solid var(--border-color);
+      cursor: pointer;
+    }
+    
+    .tab.active {
+      background-color: var(--highlight-bg);
+      font-weight: bold;
+    }
+    
+    /* Help dialog */
+    .help-dialog {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: var(--panel-bg);
+      border: 2px solid var(--border-color);
+      padding: 0;
+      width: 70%;
+      max-width: 600px;
+      z-index: 100;
+      display: none;
+    }
+    
+    .help-header {
+      background-color: var(--panel-header);
+      padding: 5px 10px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .help-content {
+      padding: 15px;
+      max-height: 70vh;
+      overflow-y: auto;
+      background-color: var(--highlight-bg);
+    }
+    
+    .help-close {
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-left">
+        <div class="title">DEEPSEEK DAS</div>
+        <div class="version">Rv1 RUNNING LOCALLY IN YOUR BROWSER</div>
+      </div>
+      <div class="progress-bar-container">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <div class="progress-text" id="progress-text">Loading model data (0%)</div>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Parameters</div>
+        <div class="panel-buttons">
+          <div class="panel-button" id="help-button">Help</div>
+        </div>
+      </div>
+      <div class="panel-content">
+        <div class="form-row">
+          <div class="form-label">Text Prompt:</div>
+          <div class="form-input">
+            <textarea id="prompt" rows="2">a painting of a futuristic city with neon lights</textarea>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-label">Prompt Weight:</div>
+          <div class="form-input">
+            <div class="slider-container">
+              <input type="range" id="weight" min="0.0" max="1.0" step="0.1" value="0.5" />
+              <div class="slider-value" id="weight-value">0.5</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-label">Steps:</div>
+          <div class="form-input">
+            <div class="slider-container">
+              <input type="range" id="steps" min="20" max="200" step="10" value="100" />
+              <div class="slider-value" id="steps-value">100</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="button-row">
+          <button id="generate-btn">Generate Image</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Image Output</div>
+        <div class="panel-buttons">
+          <div class="panel-button" id="view-btn">View</div>
+          <div class="panel-button" id="save-btn">Save</div>
+        </div>
+      </div>
+      <div class="panel-content">
+        <div class="image-container">
+          <img id="output-image" style="max-width: 100%; max-height: 300px; display: none;" />
+          <div id="loading-text" class="loading-text" style="display: none;">GENERATING...</div>
+        </div>
+        
+        <div class="form-row" style="margin-top: 10px; display: none;" id="intermediate-controls">
+          <div class="form-label">Step View:</div>
+          <div class="form-input">
+            <div class="slider-container">
+              <input type="range" id="intermediate-slider" min="0" max="99" step="1" value="0" />
+              <div class="slider-value" id="intermediate-value">0</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-row" style="display: none;" id="latent-controls">
+          <div class="form-label">Latent Space:</div>
+          <div class="form-input">
+            <div class="slider-container">
+              <input type="range" id="latent-slider" min="0" max="1" step="0.01" value="0.5" />
+              <div class="slider-value" id="latent-value">0.5</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="panel">
+      <div class="panel-header toggle-section" id="stats-toggle">
+        <div class="panel-title">Processing Stats</div>
+      </div>
+      <div class="panel-content collapsible" id="stats-content">
+        <table class="table">
+          <thead>
+            <tr>
+              <th width="50">Step</th>
+              <th>Loss</th>
+              <th>ℓ∞ Distance</th>
+              <th width="120">Status</th>
+            </tr>
+          </thead>
+          <tbody id="stats-table-body">
+            <tr>
+              <td>-</td>
+              <td>-</td>
+              <td>-</td>
+              <td>IDLE</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="step-log" id="step-log">
+          <div class="log-entry">System initialized. Ready to generate images.</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="status-bar" id="status-bar">
+      Ready. Use GENERATE to create a new image.
+    </div>
+  </div>
+  
+  <div class="overlay" id="overlay"></div>
+  <div class="help-dialog" id="help-dialog">
+    <div class="help-header">
+      <span>HELP: Image Generation Parameters</span>
+      <span class="help-close" id="help-close">X</span>
+    </div>
+    <div class="help-content">
+      <p><b>Text Prompt:</b> Describe the image you want to generate.</p>
+      <p><b>Prompt Weight:</b> Blends your prompt with a hardcoded style prompt for dramatic effects.</p>
+      <p><b>Steps:</b> Number of optimization iterations. More steps yield better quality.</p>
+      <p><b>Step View:</b> After generation, use this slider to view intermediate images.</p>
+      <p><b>Latent Space:</b> Explore variations of your image.</p>
+      <hr>
+      <p><b>Keyboard Shortcuts:</b></p>
+      <p>Ctrl+Enter: Generate Image</p>
+      <p>H: Toggle Help</p>
+    </div>
+  </div>
+  
+  <script>
+    // API base URL (adjust if needed)
+    const API_BASE_URL = 'http://127.0.0.1:8501';
+    
+    // DOM elements
+    const generateBtn = document.getElementById('generate-btn');
+    const promptInput = document.getElementById('prompt');
+    const weightSlider = document.getElementById('weight');
+    const weightValue = document.getElementById('weight-value');
+    const stepsSlider = document.getElementById('steps');
+    const stepsValue = document.getElementById('steps-value');
+    const outputImage = document.getElementById('output-image');
+    const loadingText = document.getElementById('loading-text');
+    const statusBar = document.getElementById('status-bar');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    const intermediateSlider = document.getElementById('intermediate-slider');
+    const intermediateValue = document.getElementById('intermediate-value');
+    const intermediateControls = document.getElementById('intermediate-controls');
+    const latentSlider = document.getElementById('latent-slider');
+    const latentValue = document.getElementById('latent-value');
+    const latentControls = document.getElementById('latent-controls');
+    const statsTableBody = document.getElementById('stats-table-body');
+    const stepLog = document.getElementById('step-log');
+    const statsToggle = document.getElementById('stats-toggle');
+    const statsContent = document.getElementById('stats-content');
+    const helpButton = document.getElementById('help-button');
+    const helpDialog = document.getElementById('help-dialog');
+    const helpClose = document.getElementById('help-close');
+    const overlay = document.getElementById('overlay');
+    const viewBtn = document.getElementById('view-btn');
+    const saveBtn = document.getElementById('save-btn');
+    
+    // Global run ID and max steps
+    let currentRunId = null;
+    let maxSteps = 100;
+    let imageData = null;
+    
+    // Update slider values
+    weightSlider.addEventListener('input', () => {
+      weightValue.textContent = weightSlider.value;
+    });
+    
+    stepsSlider.addEventListener('input', () => {
+      stepsValue.textContent = stepsSlider.value;
+      maxSteps = parseInt(stepsSlider.value);
+      intermediateSlider.max = maxSteps - 1;
+    });
+    
+    intermediateSlider.addEventListener('input', () => {
+      intermediateValue.textContent = intermediateSlider.value;
+      if (currentRunId) {
+        loadIntermediateImage(currentRunId, intermediateSlider.value);
+      }
+    });
+    
+    latentSlider.addEventListener('input', () => {
+      latentValue.textContent = latentSlider.value;
+      statusBar.textContent = `Latent space position: ${latentSlider.value}`;
+    });
+    
+    // Help dialog controls
+    helpButton.addEventListener('click', () => {
+      helpDialog.style.display = 'block';
+      overlay.style.display = 'block';
+    });
+    
+    helpClose.addEventListener('click', () => {
+      helpDialog.style.display = 'none';
+      overlay.style.display = 'none';
+    });
+    
+    overlay.addEventListener('click', () => {
+      helpDialog.style.display = 'none';
+      overlay.style.display = 'none';
+    });
+    
+    // Log entry function
+    function addLogEntry(text) {
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+      stepLog.appendChild(entry);
+      stepLog.scrollTop = stepLog.scrollHeight;
+    }
+    
+    // Generate image API call (using /run_das endpoint)
+    async function generateImage(prompt, weight, steps) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/run_das`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: prompt,
+            weight: parseFloat(weight),
+            steps: parseInt(steps)
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error('Error generating image:', error);
+        throw error;
+      }
+    }
+    
+    // Function to load final image from API (/get_final)
+    async function loadFinalImage(runId) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/get_final/${runId}`);
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          imageData = reader.result.split(',')[1]; // Base64 part
+          outputImage.src = reader.result;
+          outputImage.style.display = 'block';
+          intermediateControls.style.display = 'flex';
+          statusBar.textContent = 'COMPLETED: Image generation finished successfully';
+        };
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error('Error loading final image:', error);
+        statusBar.textContent = `ERROR: ${error.message}`;
+      }
+    }
+    
+    // Function to load intermediate image from API (/get_intermediate)
+    async function loadIntermediateImage(runId, step) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/get_intermediate/${runId}?step=${step}`);
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
+        const blob = await response.blob();
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          outputImage.src = reader.result;
+          outputImage.style.display = 'block';
+          statusBar.textContent = `Viewing intermediate image at step ${step}`;
+        };
+        reader.readAsDataURL(blob);
+      } catch (error) {
+        console.error('Error loading intermediate image:', error);
+        statusBar.textContent = `ERROR: ${error.message}`;
+      }
+    }
+    
+    // View button (opens image in new tab)
+    viewBtn.addEventListener('click', () => {
+      if (imageData) {
+        const newTab = window.open();
+        newTab.document.write(`<html><body style="margin:0;display:flex;justify-content:center;align-items:center;background:#333;height:100vh;"><img src="data:image/png;base64,${imageData}" style="max-width:90%;max-height:90%;"></body></html>`);
+      } else {
+        statusBar.textContent = 'No image available to view';
+      }
+    });
+    
+    // Save button (downloads image)
+    saveBtn.addEventListener('click', () => {
+      if (imageData) {
+        const link = document.createElement('a');
+        link.href = `data:image/png;base64,${imageData}`;
+        link.download = `deepseek_img_${new Date().toISOString().replace(/[:.]/g, '-')}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        statusBar.textContent = 'Image saved successfully';
+      } else {
+        statusBar.textContent = 'No image available to save';
+      }
+    });
+    
+    // Keyboard shortcut for Ctrl+Enter to generate image, and H to toggle help
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'Enter') {
+        generateBtn.click();
+      } else if (e.key === 'h' || e.key === 'H') {
+        if (helpDialog.style.display === 'block') {
+          helpDialog.style.display = 'none';
+          overlay.style.display = 'none';
+        } else {
+          helpDialog.style.display = 'block';
+          overlay.style.display = 'block';
+        }
+      }
+    });
+    
+    // Simulate model loading progress
+    function simulateLoading() {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 5;
+        if (progress > 100) {
+          clearInterval(interval);
+          progressBar.style.width = '100%';
+          progressText.textContent = 'Models loaded successfully';
+          setTimeout(() => {
+            progressText.textContent = 'IDLE';
+          }, 2000);
+          return;
+        }
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `Loading model data (${progress}%)`;
+      }, 100);
+    }
+    
+    // Generate button click handler
+    generateBtn.addEventListener('click', async () => {
+      const prompt = promptInput.value.trim();
+      if (!prompt) {
+        statusBar.textContent = 'ERROR: Please enter a prompt';
+        addLogEntry('ERROR: Prompt field cannot be empty');
+        return;
+      }
+      outputImage.style.display = 'none';
+      loadingText.style.display = 'block';
+      statusBar.textContent = 'RUNNING: Image generation in progress...';
+      addLogEntry(`Starting generation with prompt: "${prompt}"`);
+      addLogEntry(`Parameters: Weight=${weightSlider.value}, Steps=${stepsSlider.value}`);
+      try {
+        const data = await generateImage(prompt, weightSlider.value, stepsSlider.value);
+        if (data.run_id) {
+          currentRunId = data.run_id;
+          addLogEntry(`Generation started. Run ID: ${currentRunId}`);
+          // Once generation is complete, load the final image
+          await loadFinalImage(currentRunId);
+        } else {
+          throw new Error('No run ID returned from API');
+        }
+      } catch (error) {
+        statusBar.textContent = `ERROR: ${error.message}`;
+        addLogEntry(`ERROR: ${error.message}`);
+      } finally {
+        loadingText.style.display = 'none';
+      }
+    });
+    
+    // Initialize simulated model loading
+    simulateLoading();
+  </script>
+</body>
+</html>
