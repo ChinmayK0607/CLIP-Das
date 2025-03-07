@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeoVim DAS - Image Generator</title>
+    <style>
+        :root {
+            --bg-color: #f8f3ee;
+            --text-color: #222222;
+            --accent-color: #2c6e49;
+            --light-accent: #4c956c;
+            --border-color: #d9d9d9;
+            --highlight-color: #ffeedd;
+        }
+        
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 2rem;
+            letter-spacing: -1px;
+            position: relative;
+        }
+        
+        .logo::after {
+            content: "";
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 3px;
+            background-color: var(--text-color);
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .input-section, .output-section {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+        
+        .section-title {
+            font-size: 1rem;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .section-title:before {
+            content: ">";
+            color: var(--accent-color);
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+        }
+        
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            font-family: 'JetBrains Mono', monospace;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 3px;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            border-radius: 3px;
+            font-size: 0.85rem;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: var(--light-accent);
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .image-container {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            background-color: var(--highlight-color);
+            padding: 10px;
+            border-radius: 4px;
+            min-height: 224px;
+        }
+        
+        .status {
+            font-size: 0.85rem;
+            margin-top: 10px;
+            padding: 8px;
+            border-left: 3px solid var(--accent-color);
+            background-color: var(--highlight-color);
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .slider-value {
+            min-width: 50px;
+            text-align: right;
+            font-size: 0.85rem;
+        }
+        
+        .control-item {
+            margin-bottom: 15px;
+        }
+        
+        /* Loading animation */
+        .loading {
+            border: 3px solid var(--border-color);
+            border-radius: 50%;
+            border-top: 3px solid var(--accent-color);
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loss-chart {
+            width: 100%;
+            height: 200px;
+            background-color: var(--highlight-color);
+            margin-top: 15px;
+            border-radius: 3px;
+            position: relative;
+        }
+        
+        .chart-container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        /* Small screens adaptation */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .logo {
+                font-size: 2rem;
+            }
+        }
+        
+        .keyboard-shortcut {
+            color: var(--accent-color);
+            font-size: 0.75rem;
+            margin-left: auto;
+        }
+        
+        .info-text {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Neovim-inspired footer */
+        .footer {
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: #666;
+            border-top: 1px solid var(--border-color);
+            padding-top: 10px;
+        }
+        
+        .footer::before {
+            content: "⚡";
+            margin-right: 5px;
+        }
+        
+        /* File browser sidebar styling */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 250px;
+            background-color: var(--bg-color);
+            border-right: 1px solid var(--border-color);
+            padding: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">NeoVim DAS</div>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="section-title">Input Parameters <span class="keyboard-shortcut">i</span></div>
+                
+                <div class="control-item">
+                    <label for="prompt">Text Prompt:</label>
+                    <textarea id="prompt" rows="3" placeholder="Enter a description of the image you want to generate...">a painting of a futuristic city with neon lights</textarea>
+                </div>
+                
+                <div class="control-item">
+                    <label for="weight">Prompt Weight: <span id="weight-value">0.5</span></label>
+                    <div class="slider-container">
+                        <input type="range" id="weight" min="0.1" max="1.0" step="0.1" value="0.5">
+                    </div>
+                    <div class="info-text">Higher values create stronger adherence to the prompt</div>
+                </div>
+                
+                <div class="control-item">
+                    <label for="steps">Optimization Steps: <span id="steps-value">100</span></label>
+                    <div class="slider-container">
+                        <input type="range" id="steps" min="20" max="200" step="10" value="100">
+                    </div>
+                    <div class="info-text">More steps = better quality but slower generation</div>
+                </div>
+                
+                <div class="buttons">
+                    <button id="generate-btn">Generate Image</button>
+                    <button id="stop-btn" disabled>Stop</button>
+                </div>
+            </div>
+            
+            <div class="output-section">
+                <div class="section-title">Output <span class="keyboard-shortcut">o</span></div>
+                
+                <div id="status" class="status">Ready to generate images...</div>
+                
+                <div class="image-container">
+                    <img id="output-image" style="max-width: 100%; max-height: 300px; display: none;">
+                    <div id="loading" class="loading" style="display: none;"></div>
+                </div>
+                
+                <div class="control-item" style="margin-top: 20px; display: none;" id="intermediate-controls">
+                    <label for="intermediate-slider">View Intermediate Steps: <span id="intermediate-value">0</span></label>
+                    <div class="slider-container">
+                        <input type="range" id="intermediate-slider" min="0" max="99" step="1" value="0">
+                    </div>
+                </div>
+                
+                <div class="control-item" style="display: none;" id="latent-controls">
+                    <label for="latent-slider">Latent Space Interpolation: <span id="latent-value">0.5</span></label>
+                    <div class="slider-container">
+                        <input type="range" id="latent-slider" min="0" max="1" step="0.01" value="0.5">
+                    </div>
+                    <div class="info-text">Interpolate between different latent vectors</div>
+                </div>
+                
+                <div class="loss-chart" id="loss-chart">
+                    <div class="chart-container" id="chart-container"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            DAS loaded 3/3 models in 27.55ms
+        </div>
+    </div>
+
+    <script>
+        // DOM elements
+        const generateBtn = document.getElementById('generate-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const promptInput = document.getElementById('prompt');
+        const weightSlider = document.getElementById('weight');
+        const weightValue = document.getElementById('weight-value');
+        const stepsSlider = document.getElementById('steps');
+        const stepsValue = document.getElementById('steps-value');
+        const outputImage = document.getElementById('output-image');
+        const loading = document.getElementById('loading');
+        const status = document.getElementById('status');
+        const intermediateSlider = document.getElementById('intermediate-slider');
+        const intermediateValue = document.getElementById('intermediate-value');
+        const intermediateControls = document.getElementById('intermediate-controls');
+        const latentSlider = document.getElementById('latent-slider');
+        const latentValue = document.getElementById('latent-value');
+        const latentControls = document.getElementById('latent-controls');
+        const chartContainer = document.getElementById('chart-container');
+        
+        // Current run ID
+        let currentRunId = null;
+        let maxSteps = 100;
+        
+        // Update slider values
+        weightSlider.addEventListener('input', () => {
+            weightValue.textContent = weightSlider.value;
+        });
+        
+        stepsSlider.addEventListener('input', () => {
+            stepsValue.textContent = stepsSlider.value;
+            maxSteps = parseInt(stepsSlider.value);
+        });
+        
+        intermediateSlider.addEventListener('input', () => {
+            intermediateValue.textContent = intermediateSlider.value;
+            if (currentRunId) {
+                loadIntermediateImage(currentRunId, intermediateSlider.value);
+            }
+        });
+        
+        latentSlider.addEventListener('input', () => {
+            latentValue.textContent = latentSlider.value;
+            // In a real implementation, this would trigger latent space interpolation
+            // For this demo, we'll just update the status
+            status.textContent = `Latent interpolation: ${latentSlider.value}`;
+        });
+        
+        // Generate image
+        generateBtn.addEventListener('click', async () => {
+            const prompt = promptInput.value.trim();
+            if (!prompt) {
+                status.textContent = 'Please enter a prompt';
+                return;
+            }
+            
+            // Show loading
+            loading.style.display = 'block';
+            outputImage.style.display = 'none';
+            status.textContent = 'Generating image...';
+            generateBtn.disabled = true;
+            stopBtn.disabled = false;
+            
+            try {
+                const response = await fetch('/run_das', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        prompt: prompt,
+                        weight: parseFloat(weightSlider.value),
+                        steps: parseInt(stepsSlider.value)
+                    })
+                });
+                
+                const data = await response.json();
+                currentRunId = data.run_id;
+                
+                // Load the final image
+                loadFinalImage(currentRunId);
+                
+                // Load the loss curve
+                loadLossCurve(currentRunId);
+                
+                // Setup intermediate slider
+                intermediateSlider.max = parseInt(stepsSlider.value) - 1;
+                intermediateSlider.value = parseInt(stepsSlider.value) - 1;
+                intermediateValue.textContent = intermediateSlider.value;
+                intermediateControls.style.display = 'block';
+                
+                // Show latent controls (in a real implementation)
+                latentControls.style.display = 'block';
+                
+                status.textContent = `Generated in ${data.elapsed.toFixed(1)} seconds`;
+            } catch (error) {
+                status.textContent = `Error: ${error.message}`;
+            } finally {
+                loading.style.display = 'none';
+                generateBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        });
+        
+        // Load the final generated image
+        async function loadFinalImage(runId) {
+            outputImage.src = `/get_final/${runId}?t=${Date.now()}`;
+            outputImage.onload = () => {
+                outputImage.style.display = 'block';
+            };
+        }
+        
+        // Load an intermediate image
+        async function loadIntermediateImage(runId, step) {
+            outputImage.src = `/get_intermediate/${runId}?step=${step}&t=${Date.now()}`;
+            status.textContent = `Showing step ${step} of ${maxSteps-1}`;
+        }
+        
+        // Load and display the loss curve
+        async function loadLossCurve(runId) {
+            try {
+                const response = await fetch(`/get_loss/${runId}`);
+                const data = await response.json();
+                const lossCurve = data.loss_curve;
+                
+                // Create a simple SVG chart
+                const width = chartContainer.clientWidth;
+                const height = chartContainer.clientHeight;
+                const padding = 30;
+                const maxLoss = Math.max(...lossCurve);
+                const minLoss = Math.min(...lossCurve);
+                
+                // Create SVG
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('width', width);
+                svg.setAttribute('height', height);
+                
+                // Create path
+                const pathData = lossCurve.map((loss, i) => {
+                    const x = padding + (i / (lossCurve.length - 1)) * (width - 2 * padding);
+                    const y = height - padding - ((loss - minLoss) / (maxLoss - minLoss || 1)) * (height - 2 * padding);
+                    return `${i === 0 ? 'M' : 'L'}${x},${y}`;
+                }).join(' ');
+                
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', pathData);
+                path.setAttribute('stroke', '#2c6e49');
+                path.setAttribute('stroke-width', '2');
+                path.setAttribute('fill', 'none');
+                
+                // Add axes
+                const xAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                xAxis.setAttribute('x1', padding);
+                xAxis.setAttribute('y1', height - padding);
+                xAxis.setAttribute('x2', width - padding);
+                xAxis.setAttribute('y2', height - padding);
+                xAxis.setAttribute('stroke', '#666');
+                xAxis.setAttribute('stroke-width', '1');
+                
+                const yAxis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                yAxis.setAttribute('x1', padding);
+                yAxis.setAttribute('y1', padding);
+                yAxis.setAttribute('x2', padding);
+                yAxis.setAttribute('y2', height - padding);
+                yAxis.setAttribute('stroke', '#666');
+                yAxis.setAttribute('stroke-width', '1');
+                
+                // Add labels
+                const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                xLabel.setAttribute('x', width / 2);
+                xLabel.setAttribute('y', height - 5);
+                xLabel.setAttribute('text-anchor', 'middle');
+                xLabel.setAttribute('font-size', '10');
+                xLabel.textContent = 'Steps';
+                
+                const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                yLabel.setAttribute('x', 10);
+                yLabel.setAttribute('y', height / 2);
+                yLabel.setAttribute('text-anchor', 'middle');
+                yLabel.setAttribute('font-size', '10');
+                yLabel.setAttribute('transform', `rotate(-90, 10, ${height/2})`);
+                yLabel.textContent = 'Loss';
+                
+                // Add to SVG
+                svg.appendChild(xAxis);
+                svg.appendChild(yAxis);
+                svg.appendChild(path);
+                svg.appendChild(xLabel);
+                svg.appendChild(yLabel);
+                
+                // Add to container
+                chartContainer.innerHTML = '';
+                chartContainer.appendChild(svg);
+                
+            } catch (error) {
+                console.error('Error loading loss curve:', error);
+            }
+        }
+        
+        // Stop button (in a real implementation, this would cancel the generation)
+        stopBtn.addEventListener('click', () => {
+            status.textContent = 'Generation stopped.';
+            loading.style.display = 'none';
+            generateBtn.disabled = false;
+            stopBtn.disabled = true;
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl+Enter to generate
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateBtn.click();
+            }
+            
+            // ESC to stop
+            if (e.key === 'Escape') {
+                stopBtn.click();
+            }
+            
+            // i to focus on prompt
+            if (e.key === 'i' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                if (document.activeElement !== promptInput) {
+                    promptInput.focus();
+                    e.preventDefault();
+                }
+            }
+        });
+        
+        // Initialize with default values
+        weightValue.textContent = weightSlider.value;
+        stepsValue.textContent = stepsSlider.value;
+    </script>
+</body>
+</html>
